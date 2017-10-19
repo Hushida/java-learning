@@ -1,0 +1,115 @@
+学习了Calendar类和GregorianCalendar类的使用，现在来用它们来制作一个简单的可视化日历。
+首先把任务分解。
+第一步：打印出一周的七天和一个月的31天。
+在for循环中从1到31依次打印，对7取余，实现每一行只有七天，对应周一到周日。
+代码如下
+package com.bjsxt.TestDate;
+
+/**
+ * 可视化日历的程序-版本1
+ * @author Administrator
+ *
+ */
+public class VisulCalendar {
+	public static void main(String[] args) {
+		System.out.println("日\t一\t二\t三\t四\t五\t六");
+		int j=0;
+		for(int i=1;i<=31;i++) {
+			System.out.print(i + "\t");
+			j++;
+			if(j%7 == 0) {
+				System.out.println();
+				j=0;
+			}
+		}
+	}
+
+}
+运行的效果为：
+
+日	一	二	三	四	五	六
+1	2	3	4	5	6	7	
+8	9	10	11	12	13	14	
+15	16	17	18	19	20	21	
+22	23	24	25	26	27	28	
+29	30	31	
+
+
+第二步：进一步添加各个模块。使用System.in来捕获键盘输入的日期，判断当前月份的1号是周几（calendar.get(Calendar.DAY_OF_WEEK)-1)），
+确定当前月份一共多少天（calendar.getActualMaximum(Calendar.DATE)）。然后打印出当前月份所有天数，并在当前日期前面加上一个符号*。
+
+package com.bjsxt.TestDate;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Scanner;
+
+/**
+ * 可视化日历的程序-版本2
+ * @author Administrator
+ *
+ */
+public class VisulCalendar2 {
+	public static void main(String[] args) {
+		System.out.println("请输入日期（按照格式 2030-3-10:）");
+		Scanner scanner = new Scanner(System.in);
+		String str = scanner.nextLine();
+		
+		String temp = str;
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+		try {
+			Date date = format.parse(temp);
+			Calendar calendar = new GregorianCalendar();
+			calendar.setTime(date);
+			int today = calendar.get(Calendar.DATE);  //获取当前的日期
+			
+			calendar.set(Calendar.DATE,1);
+			System.out.println("本月份的1号是星期"
+					+ ( calendar.get(Calendar.DAY_OF_WEEK)-1));
+			System.out.println("本月份一共"
+					+ calendar.getActualMaximum(Calendar.DATE)
+					+ "天");
+			int maxDate = calendar.getActualMaximum(Calendar.DATE);
+			System.out.println("日\t一\t二\t三\t四\t五\t六");
+			
+			for(int i=1;i< calendar.get(Calendar.DAY_OF_WEEK);i++) {
+				System.out.print("\t");
+			}
+			
+			//打印出当前月份的所有天数，并在当前天数前添加符号*
+			for(int i=1;i<= maxDate;i++) {
+				if(i == today) {
+					System.out.print("*");
+				}
+				System.out.print(i + "\t");
+				int w = calendar.get(Calendar.DAY_OF_WEEK);  //w表示当前是星期几
+				if(w == Calendar.SATURDAY) {
+					System.out.println();
+				}
+				calendar.add(Calendar.DATE,1);
+				
+			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+}
+
+运行程序之后，按照要求输入日期2017-3-23，显示结果如下
+
+2017-3-23
+本月份的1号是星期3
+本月份一共31天
+日	一	二	三	四	五	六
+			1	2	3	4	
+5	6	7	8	9	10	11	
+12	13	14	15	16	17	18	
+19	20	21	22	*23	24	25	
+26	27	28	29	30	31	

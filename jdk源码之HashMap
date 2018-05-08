@@ -1,0 +1,81 @@
+什么是hash？ 
+
+hash的意思是“散列”，音译做“哈希”，输入一个任意长度的数据，进过哈希运算之后，输出一段固定长度的数据，作为输入数据的指纹，输出的结果就是哈希值。一般来说输入数据的空间远远大于输出的哈希值的空间，输入不同的数据可能会产生相同的哈希值，所以很难从哈希值来逆向推出输入值是什么。哈希函数本质上是一个压缩算法，它不同长度的消息压缩成为固定长度的消息。
+哈希函数有一个特点：对于同一个哈希函数，如果计算出来的哈希值不同，那么输入的数据一定不同，但是输入的数据不同，通过哈希函数计算出来的哈希值可能相同。
+如果输入不同的数据，却产生了相同的哈希值，就认为发生了哈希冲突。产生冲突就要解决，通常的解决方法有开放地址法、链地址法、再哈希法。
+开放地址法：当发生散列冲突时，就在哈希表中寻找写一个哈希地址，直到找到一个空的哈希地址为止，只要哈希表足够大，总能找到空的哈希地址
+链地址法：是用了数组和链表这两种数据结构。数组的优点是查找很方便，通过访问数据下标就可以访问对应的元素，缺点是插入和删除元素较慢，如果在数组的中间进行插入，很多元素的内存地址都需要移动，效率比较低。  链表的优点是插入、删除很方便，只需要修改对应元素的指针就可以了，缺点是查找不方便。					在链地址法里就是结合数组和链表的优点，用数组做查询，用链表做插入和删除。
+把哈希值相同的元素连接成一个链表，链表的头结点存到数组里，这样数组的每一个但愿就对应一个链表。
+再哈希法：当哈希地址冲突时，使用其他的hash函数计算另一个hash地址，直到不再产生hash冲突
+HashMap
+
+在jdk1.7源码的hashmap里，使用的链地址法，构造了Entry类型的数组，存储Entry对象组成的链表，一个Entry对象包含Key-Value对。
+存储元素
+如果想在hashmap中添加Entry对象，需要使用put方法。
+public V put(K key, V value) {
+        if (table == EMPTY_TABLE) {
+            inflateTable(threshold);
+        }
+        if (key == null)
+            return putForNullKey(value);
+        int hash = hash(key);
+        int i = indexFor(hash, table.length);
+        for (Entry<K,V> e = table[i]; e != null; e = e.next) {
+            Object k;
+            if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {
+                V oldValue = e.value;
+                e.value = value;
+                e.recordAccess(this);
+                return oldValue;
+            }
+        }
+
+        modCount++;
+//根据计算出来的hash值，找到数组table对应的下标i，把key-value对放进去
+        addEntry(hash, key, value, i);
+        return null;
+    }
+
+
+在put方法中，首先根据Entry对象的key计算它的hash值，由这个hash值确定这个对象在数组中的存储位置（也就是在数组中的下标）。如果当前位置上为空，直接把元素放在这里就可以了。如果当前存储位置上已经有一个元素存在了，说明这两个Entry元素的key计算的hash值相同，所以存储位置才会相同。如果这两个Entry的key通过equals方法比较之后返回true，那么用新加入Entry的value覆盖原来Entry的value，key的值不覆盖。如果这两个Entry的key通过equals方法比较之后范湖false，那么就把Entry元素以链表的形式存放，新加入的Entry元素放在链表的头部，原来的元素放在链表的尾部。
+读取元素
+在HashMap中读取元素需要使用get方法。
+public V get(Object key) {
+        if (key == null)
+            return getForNullKey();
+        Entry<K,V> entry = getEntry(key);
+
+        return null == entry ? null : entry.getValue();
+    }
+
+final Entry<K,V> getEntry(Object key) {
+        if (size == 0) {
+            return null;
+        }
+
+        int hash = (key == null) ? 0 : hash(key);
+        for (Entry<K,V> e = table[indexFor(hash, table.length)];
+             e != null;
+             e = e.next) {
+            Object k;
+            if (e.hash == hash &&
+                ((k = e.key) == key || (key != null && key.equals(k))))
+                return e;
+        }
+        return null;
+    }
+首先判断key是否为空，为空就返回空，不为空就进入getEntry方法中，首先计算key的hash值，根据hash值定位到table数组的相应位置，然后在通过比较key在链表中找到需要的元素。
+
+HashMap的扩大容量的机制
+数组的初始容量是1左四位，也就是2^4=16
+static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
+当HashMap中的元素越来越多，出现hash冲突的概率越来越高，因为数组的长度是固定的，为了提高查询的效率，需要对数组进行扩大容量。具体什么时候进行扩大容量，要看loadfactor。loadfactor的默认值是0.75.
+/**
+ * The load factor used when none specified in constructor.
+ */
+static final float DEFAULT_LOAD_FACTOR = 0.75f;
+当数组元素个数超过数组容量乘以loadfactor的时候，就把容量扩大为原来的两倍。
+为什么loadfactor是0.75，而不是其他的的数？
+这要理解loadfactor装载因子的意义，装载因子衡量的是一个hash表空间的使用程度，他的值越大表示空间利用率越高，他的值越小表明利用率越低。由于hashmap使用的链地址法，查找一个元素的平均时间是常数级别的，装载因子越大，对空间的利用就越充分，但是也会导致查询的效率降低；如果装载因子太小，hash表太稀疏，会造成空间的浪费。因此对时间和空间效率做了一下平衡，把装载因子取值为0.75.
+扩容的时候为什么是2倍，不是1.5或3倍？
+者主要是出于性能方面的考虑，设计成2的倍数可以通过位运算完成，这样比去乘1.5，乘3操作要快。至于为什么位运算比较快？因为它直接对内存数据进行操作，而不需要转换成十进制在操作，所以效率高。
